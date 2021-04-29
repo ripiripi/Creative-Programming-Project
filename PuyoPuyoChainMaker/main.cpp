@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
+#include <atlimage.h>
 
 // The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
@@ -10,6 +11,10 @@ static TCHAR szWindowClass[] = _T("DesktopApp");
 static TCHAR szTitle[] = _T("Puyo Puyo Chain Maker");
 
 HINSTANCE hInst;
+static TCHAR colorstr[50];
+
+const int GameWindowSizeX = 816;
+const int GameWindowSizeY = 489;
 
 // Forward declarations of functions included in this code module:
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -123,7 +128,27 @@ int CALLBACK WinMain(
 
         return 1;
     }
-    SetWindowPos(puyoWnd, NULL, 0, 0, 816, 489, SWP_NOZORDER);
+    SetWindowPos(hWnd, NULL, 0, GameWindowSizeY+1, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    SetWindowPos(puyoWnd, NULL, 0, 0, GameWindowSizeX, GameWindowSizeY, SWP_NOZORDER);
+
+    Sleep(300);
+
+    CRect targetRect(0, 0,GameWindowSizeX,GameWindowSizeY);
+    HDC hWndDC = GetDC(puyoWnd);
+
+    CImage img;
+    img.Create(targetRect.Width(), targetRect.Height(), 24);
+    CImageDC imgDC(img);
+
+    // デスクトップ画像をDIBSECTIONへ転送
+    BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
+
+    ReleaseDC(hWnd, hWndDC);
+    COLORREF color = img.GetPixel(10, GameWindowSizeY-40);
+    int r = GetRValue(color);
+    int g = GetGValue(color);
+    int b = GetBValue(color);
+    _stprintf_s(colorstr, 50, TEXT("%d,%d,%d"),r,g,b);
 
     // The parameters to ShowWindow explained:
     // hWnd: the value returned from CreateWindow
@@ -162,7 +187,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // in the top left corner.
         TextOut(hdc,
             5, 5,
-            greeting, _tcslen(greeting));//greeting, _tcslen(greeting));
+            colorstr, _tcslen(colorstr));//greeting, _tcslen(greeting));
         // End application-specific layout section.
 
         EndPaint(hWnd, &ps);
