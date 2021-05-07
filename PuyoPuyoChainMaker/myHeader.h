@@ -13,4 +13,4 @@ extern HWND puyoWnd;
 
 void OperationPuyo(int KeyCode, int ScanCode);
 void MovePuyo(int pos, int dir);
-
+void Update();

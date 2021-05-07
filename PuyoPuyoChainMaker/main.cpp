@@ -112,6 +112,11 @@ int CALLBACK WinMain(
 
     Sleep(300);
 
+    OperationPuyo(VK_RETURN, 28);//プレイスタート
+    Sleep(300);
+    //MovePuyo(2, 3);
+
+    /*
     CRect targetRect(0, 0,GameWindowSizeX,GameWindowSizeY);
     HDC hWndDC = GetDC(puyoWnd);
 
@@ -123,12 +128,12 @@ int CALLBACK WinMain(
     BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
 
     ReleaseDC(hWnd, hWndDC);
-    COLORREF color = img.GetPixel(323, 112);
+    COLORREF color = img.GetPixel(330, 150);
     int r = GetRValue(color);
     int g = GetGValue(color);
     int b = GetBValue(color);
     _stprintf_s(colorstr, 50, TEXT("%d,%d,%d"),r,g,b);
-
+    */
     GetCursorPos(&mouse_p);
     _stprintf_s(mousestr, 50, TEXT("%d,%d"), int(mouse_p.x), int(mouse_p.y));
     // The parameters to ShowWindow explained:
@@ -137,10 +142,7 @@ int CALLBACK WinMain(
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
-    OperationPuyo(VK_RETURN, 28);//プレイスタート
-    Sleep(300);
-    MovePuyo(2, 3);
-
+    
 
     // Main message loop:
     MSG msg;
@@ -158,6 +160,7 @@ int CALLBACK WinMain(
         else{
         // デッドタイム
         // ここにゲーム関連の処理を記述する
+            Update();
         }
     }
 
@@ -185,7 +188,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // in the top left corner.
         TextOut(hdc,
             5, 5,
-            colorstr, _tcslen(colorstr));//greeting, _tcslen(greeting));
+            greeting, _tcslen(greeting));
         // End application-specific layout section.
 
         EndPaint(hWnd, &ps);
@@ -193,7 +196,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MOUSEMOVE:
         GetCursorPos(&mouse_p);
         _stprintf_s(mouse, 50, TEXT("%d,%d"), int(mouse_p.x),int(mouse_p.y));
-        SetWindowText(hWnd, mouse);
+        //SetWindowText(hWnd, mouse);
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
