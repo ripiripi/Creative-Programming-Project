@@ -1,9 +1,7 @@
 #include "myHeader.h"
 
-// The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
 
-// The string that appears in the application's title bar.
 static TCHAR szTitle[] = _T("Puyo Puyo Chain Maker");
 
 HINSTANCE hInst;
@@ -15,9 +13,6 @@ static TCHAR mousestr[50];
 HWND hWnd;
 HWND puyoWnd;
 
-
-
-// Forward declarations of functions included in this code module:
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 int CALLBACK WinMain(
@@ -51,19 +46,8 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    // Store instance handle in our global variable
     hInst = hInstance;
 
-    // The parameters to CreateWindow explained:
-    // szWindowClass: the name of the application
-    // szTitle: the text that appears in the title bar
-    // WS_OVERLAPPEDWINDOW: the type of window to create
-    // CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
-    // 500, 100: initial size (width, length)
-    // NULL: the parent of this window
-    // NULL: this application does not have a menu bar
-    // hInstance: the first parameter from WinMain
-    // NULL: not used in this application
     hWnd = CreateWindow(
         szWindowClass,
         szTitle,
@@ -86,7 +70,7 @@ int CALLBACK WinMain(
         return 1;
     }
 
-    puyoWnd = FindWindowA("PuyoChampions", NULL);//PuyoChampions
+    puyoWnd = FindWindowA("PuyoChampions", NULL);
     if (!puyoWnd) {
         MessageBox(NULL,
             _T("ゲームウィンドウが見つかりません。\n「ぷよぷよ eスポーツ」を起動してね"),
@@ -116,35 +100,13 @@ int CALLBACK WinMain(
     Sleep(300);
     //MovePuyo(2, 3);
 
-    /*
-    CRect targetRect(0, 0,GameWindowSizeX,GameWindowSizeY);
-    HDC hWndDC = GetDC(puyoWnd);
-
-    CImage img;
-    img.Create(targetRect.Width(), targetRect.Height(), 24);
-    CImageDC imgDC(img);
-
-    // デスクトップ画像をDIBSECTIONへ転送
-    BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
-
-    ReleaseDC(hWnd, hWndDC);
-    COLORREF color = img.GetPixel(330, 150);
-    int r = GetRValue(color);
-    int g = GetGValue(color);
-    int b = GetBValue(color);
-    _stprintf_s(colorstr, 50, TEXT("%d,%d,%d"),r,g,b);
-    */
+    
     GetCursorPos(&mouse_p);
     _stprintf_s(mousestr, 50, TEXT("%d,%d"), int(mouse_p.x), int(mouse_p.y));
-    // The parameters to ShowWindow explained:
-    // hWnd: the value returned from CreateWindow
-    // nCmdShow: the fourth parameter from WinMain
+    
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
-    
-
-    // Main message loop:
     MSG msg;
     while (true)
     {
@@ -153,12 +115,11 @@ int CALLBACK WinMain(
             TranslateMessage( &msg );
             DispatchMessage( &msg );
             }
-            else{// ループ終了
+            else{
             break;
             }
         }
         else{
-        // デッドタイム
         // ここにゲーム関連の処理を記述する
             Update();
         }
@@ -167,10 +128,6 @@ int CALLBACK WinMain(
     return (int)msg.wParam;
 }
 
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//  PURPOSE:  Processes messages for the main window.
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     PAINTSTRUCT ps;
@@ -183,13 +140,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_PAINT:
         hdc = BeginPaint(hWnd, &ps);
 
-        // Here your application is laid out.
-        // For this introduction, we just print out "Hello, Windows desktop!"
-        // in the top left corner.
         TextOut(hdc,
             5, 5,
             greeting, _tcslen(greeting));
-        // End application-specific layout section.
 
         EndPaint(hWnd, &ps);
         break;
