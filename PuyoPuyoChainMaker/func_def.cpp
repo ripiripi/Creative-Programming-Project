@@ -1,4 +1,5 @@
 #include "myHeader.h"
+#include "Class_GameState.h"
 
 const int ScanCodeReturn = 28;
 const int ScanCodeV = 47;
@@ -65,28 +66,32 @@ void DownPuyo() {
     isDowned = !isDowned;
 }
 
-void MovePuyo(int pos,int dir){
+void MovePuyo(int num){//num(1-22)
+    int dir, pos;
+    dir = num % 4;
+    pos = num / 4 - 2;
 	/*
 	pos:第二ぷよの配置位置
         範囲:-2-+3
 		初期位置:0
 		右への移動で+1(左で-1)
 	dir:ぷよの回転
-		0:  回転無し
-		1: 左回転(z)
-		2:  右回転(x)
-        3: 一回転(入れ替え)
+		1:  回転無し
+		0: 左回転(z)
+		3:  右回転(x)
+        2: 一回転(入れ替え)
 	*/
+    
     switch (dir) {
-    case 0:
-        break;
     case 1:
+        break;
+    case 0:
         OperationPuyo(0x5A,ScanCodeZ);
         break;
-    case 2:
+    case 3:
         OperationPuyo(0x58, ScanCodeX);
         break;
-    case 3:
+    case 2:
         OperationPuyo(0x5A, ScanCodeZ);
         OperationPuyo(0x5A, ScanCodeZ);
         break;
@@ -148,14 +153,42 @@ bool IsTurnTransition() {
     return abs(GetHue(color) - HueScreen) >= 4;
 }
 
+int search() {//探索のメイン関数
+    int PuyoOrder[30];
+    //ネクネクの組ぷよの色を読み込む
+    //PuyoOrder[0] = 
+    //PuyoOrder[1] = 
+    //PuyoOrder[2] = 
+    for (int count = 0; count < 5; count++) {
+        //次の手以降のツモをランダムに生成(モンテカルロ法)
+        for (int order = 3; order < 30; order++) {
+            PuyoOrder[order] = xor128() % 25;//ツモをランダム生成
+        }
+        /*
+        memo:ツモは5+5*4/2=15種類だけど5*5でやっちゃってよさそう（ツモの作り方もこうなってるでしょう！）
+        */
+
+        //ランダムに生成したツモ列に対して、ビームサーチを実行し、一番よい次の手を決定（手の番号と、最大連鎖数）
+        /* 
+        memo:評価関数には、連鎖が起こる場合と起こらない場合を分けて考える必要がある。
+        連鎖を起こす場合、連鎖数の評価にボーナスをつけるとよさそう？（いつまでたっても発火しないことにつながらない？）
+        */
+        std::vector<GameState> states[30 + 1];
+        //当然連鎖実行操作も含む
+
+    }
+    //5つのうち、もっとも良い手を選択し、MovePuyoで操作を実行
+
+    return 0;
+}
+
 void Update() {
     
     if (!IsTurnTransition()) return;
-    if (isDowned) {
+    if (isDowned) {//下矢印キーを離す
         DownPuyo();
     }
-    xor128();
-    MovePuyo(xor128() % 6 - 2, xor128() % 4);
+    MovePuyo(xor128() % 22 + 1);
 
     Sleep(120);
 }

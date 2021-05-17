@@ -140,10 +140,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Class_GameState.cpp" />
+    <ClCompile Include="Class_TimeController.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="func_def.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Class_GameState.h" />
+    <ClInclude Include="Class_TimeController.h" />
     <ClInclude Include="myHeader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
