@@ -129,6 +129,7 @@ int GetHue(int r,int g,int b) {
     if (hue < 0)hue += 360;
     return hue;
 }
+
 bool IsTurnTransition() {
     //画像の取得
     CRect targetRect(0, 0, GameWindowSizeX, GameWindowSizeY);
@@ -152,7 +153,7 @@ bool IsTurnTransition() {
     return abs(hue - HueScreen) >= 4;
 }
 
-int JudgePuyoColor(int PuyoNum) {
+PuyoColor JudgePuyoColor(int PuyoNum) {
     CRect targetRect(0, 0, GameWindowSizeX, GameWindowSizeY);
     HDC hWndDC = GetDC(puyoWnd);
     CImage img;
@@ -191,7 +192,18 @@ int JudgePuyoColor(int PuyoNum) {
     _stprintf_s(coldebug, 50, TEXT("%d"), hue);
     SetWindowText(hWnd, coldebug);
     
-    return hue;
+    if (hue >= 30 && hue <= 50)//yellow
+        return PuyoColor::yellow;
+    else if (hue >= 265 && hue <= 285)
+        return PuyoColor::purple;//purple
+    else if (hue >= 210 && hue <= 225)//blue
+        return PuyoColor::blue;
+    else if (hue >= 350 || hue <= 10)//red
+        return PuyoColor::red;
+    else if (hue >= 100 && hue <= 115)//green
+        return PuyoColor::green;
+
+    return PuyoColor::none;
 }
 
 int search() {//探索のメイン関数
@@ -203,7 +215,7 @@ int search() {//探索のメイン関数
     for (int count = 0; count < 5; count++) {
         //次の手以降のツモをランダムに生成(モンテカルロ法)
         for (int order = 3; order < 30; order++) {
-            PuyoOrder[order] = xor128() % 25;//ツモをランダムに生成
+            PuyoOrder[order] = xor128() % 16;//ツモをランダムに生成
         }
         /*
         memo:ツモは5+5*4/2=15種類だけど5*5でやっちゃってよさそう（ツモの作り方もこうなってるでしょう！）

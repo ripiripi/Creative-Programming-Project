@@ -5,6 +5,7 @@ const int GameWidth = 6;
 const int GameHeight = 12;
 
 GameState::GameState() {
+	StateScore = 0;
 	for (int i = 0; i < GameWidth; i++)for (int j = 0; j < GameHeight; j++) {
 		Board[i][j] = PuyoColor::none;
 	}
