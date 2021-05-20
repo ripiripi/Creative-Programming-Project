@@ -6,6 +6,7 @@
 #include <atlimage.h>
 #include <chrono>
 #include <vector>
+#include <queue>
 
 #define GameWindowSizeX  816
 #define GameWindowSizeY  489
@@ -21,6 +22,7 @@ unsigned long xor128();
 
 enum class PuyoColor
 {
+	jamma = -2,
 	none = -1,
 	red = 0,
 	green = 1,

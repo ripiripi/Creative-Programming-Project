@@ -10,7 +10,7 @@ GameState::GameState() {
 	}
 }
 
-int GameState::ValueState(int xPos, int dir, std::pair<PuyoColor, PuyoColor> PairPuyo) {//操作後の盤面の評価関数
+int GameState::OperationAndValueState(int xPos, int dir, std::pair<PuyoColor, PuyoColor> PairPuyo) {//操作後の盤面の評価関数
 	int score = 0;
 	//指定されたぷよを置き、ぷよが消えれば消し、連鎖があれば評価点を加える。
 	//ただし、現在は連鎖数を高くしたい(8連鎖以上)ので、2^9連鎖の時はペナルティをつける(負の評価点)
@@ -18,7 +18,7 @@ int GameState::ValueState(int xPos, int dir, std::pair<PuyoColor, PuyoColor> Pai
 	score += 1500 * max(RensaSimulation() - 7, 0);//
 	//ぷよを置いた後の盤面を評価する。
 	//各列に1コまたは2コのぷよ列を置き、連鎖が起こる場合は連鎖数を求め、評価点の最大値を加える
-	//memo:とりあえず2個同色のぷよを置くことにする
+	//memo:とりあえず2個同色のぷよをタテに置くことにする
 	PuyoColor save[6][12];
 
 	memcpy(save, Board, sizeof(Board));//caution
@@ -30,12 +30,12 @@ int GameState::ValueState(int xPos, int dir, std::pair<PuyoColor, PuyoColor> Pai
 			PutPairPuyo(xPos, 1, NextPairPuyo);//同色ぷよを置く
 			MaxRensa = max(MaxRensa, RensaSimulation());
 
-			memcpy(Board, save, sizeof(save));//置く前に戻す
+			memcpy(Board, save, sizeof(save));//前の状態に戻す
 		}
 	}
-	score += 1000 * MaxRensa;
+	score += 1000 * MaxRensa;//実際の連鎖ボーナスより少し低くしている
 
-	
+	StateScore = score;
 	return score;
 }
 

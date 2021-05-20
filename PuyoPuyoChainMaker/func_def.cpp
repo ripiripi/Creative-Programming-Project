@@ -10,6 +10,7 @@ const int ScanCodeRight = 77;
 const int ScanCodeDown = 80;
 //ネクストとネクネクの間の背景（ターン遷移の検出用）
 const int HueScreen = 195;
+bool isStarted = false;
 bool isDowned = false;
 
 unsigned long xor128() {
@@ -109,13 +110,10 @@ void MovePuyo(int num){//num(1-22)
     DownPuyo();
 
 }
-int GetHue(COLORREF color) {
+int GetHue(int r,int g,int b) {
     int hue = 0;
     int Max = 0;
     int Min = 0;
-    int r = GetRValue(color);
-    int g = GetGValue(color);
-    int b = GetBValue(color);
     if (r == b == g)return 0;
     Max = max(r,max(b,g));
     Min = min(r,min(b, g));
@@ -144,13 +142,56 @@ bool IsTurnTransition() {
     BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
 
     ReleaseDC(hWnd, hWndDC);
-    COLORREF color = img.GetPixel(325, 120);
+    COLORREF color = img.GetPixel(313, 105);//325,120
     TCHAR coldebug[50];
+    int hue = GetHue(GetRValue(color), GetGValue(color), GetBValue(color));
     
-    _stprintf_s(coldebug, 50, TEXT("%d"), int(GetHue(color)));
-    SetWindowText(hWnd, coldebug);
+    _stprintf_s(coldebug, 50, TEXT("%d"), hue);
+    //SetWindowText(hWnd, coldebug);
 
-    return abs(GetHue(color) - HueScreen) >= 4;
+    return abs(hue - HueScreen) >= 4;
+}
+
+int JudgePuyoColor(int PuyoNum) {
+    CRect targetRect(0, 0, GameWindowSizeX, GameWindowSizeY);
+    HDC hWndDC = GetDC(puyoWnd);
+    CImage img;
+    img.Create(targetRect.Width(), targetRect.Height(), 24);
+    CImageDC imgDC(img);
+    BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
+    ReleaseDC(hWnd, hWndDC);
+
+    std::pair<int, int> SearchPuyoPosition;
+    switch (PuyoNum) {
+    case 0://ネクスト　上
+        SearchPuyoPosition = std::make_pair(313,82);
+        break;
+    case 1://ネクスト　下
+        SearchPuyoPosition = std::make_pair(313, 105);
+        break;
+    case 2://ネクネク　上
+        SearchPuyoPosition = std::make_pair(333, 134);
+        break;
+    case 3://ネクネク　下
+        SearchPuyoPosition = std::make_pair(333, 153);
+        break;
+    }
+    int AveR = 0;
+    int AveG = 0;
+    int AveB = 0;
+    for (int num = -1; num <= 1; num++) {
+        SearchPuyoPosition.first += num * 3;
+        COLORREF color = img.GetPixel(SearchPuyoPosition.first, SearchPuyoPosition.second);
+        AveR += GetRValue(color);
+        AveG += GetGValue(color);
+        AveB += GetBValue(color);
+    }
+    int hue = GetHue(AveR / 3 , AveG / 3, AveB / 3);
+    TCHAR coldebug[50];
+    _stprintf_s(coldebug, 50, TEXT("%d"), hue);
+    SetWindowText(hWnd, coldebug);
+    
+    return hue;
 }
 
 int search() {//探索のメイン関数
@@ -162,7 +203,7 @@ int search() {//探索のメイン関数
     for (int count = 0; count < 5; count++) {
         //次の手以降のツモをランダムに生成(モンテカルロ法)
         for (int order = 3; order < 30; order++) {
-            PuyoOrder[order] = xor128() % 25;//ツモをランダム生成
+            PuyoOrder[order] = xor128() % 25;//ツモをランダムに生成
         }
         /*
         memo:ツモは5+5*4/2=15種類だけど5*5でやっちゃってよさそう（ツモの作り方もこうなってるでしょう！）
@@ -182,12 +223,17 @@ int search() {//探索のメイン関数
     return 0;
 }
 
+void JudgeStart(){
+
+}
+
 void Update() {
     
     if (!IsTurnTransition()) return;
     if (isDowned) {//下矢印キーを離す
         DownPuyo();
     }
+    JudgePuyoColor(0);
     MovePuyo(xor128() % 22 + 1);
 
     Sleep(120);
