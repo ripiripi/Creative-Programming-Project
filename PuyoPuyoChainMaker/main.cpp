@@ -97,7 +97,7 @@ int CALLBACK WinMain(
     Sleep(300);
 
     OperationPuyo(VK_RETURN, 28);//プレイスタート
-    Sleep(300);
+    Sleep(1000);
     //MovePuyo(2, 3);
 
     

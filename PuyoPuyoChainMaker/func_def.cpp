@@ -1,5 +1,6 @@
 #include "myHeader.h"
 #include "Class_GameState.h"
+#include "Class_TimeController.h"
 
 const int ScanCodeReturn = 28;
 const int ScanCodeV = 47;
@@ -143,13 +144,18 @@ bool IsTurnTransition() {
     BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
 
     ReleaseDC(hWnd, hWndDC);
-    COLORREF color = img.GetPixel(313, 105);//325,120
+    COLORREF color = img.GetPixel(325, 120);//325,120
     TCHAR coldebug[50];
     int hue = GetHue(GetRValue(color), GetGValue(color), GetBValue(color));
     
     _stprintf_s(coldebug, 50, TEXT("%d"), hue);
     //SetWindowText(hWnd, coldebug);
-
+    
+    if (abs(hue - HueScreen) >= 4) {
+        TCHAR coldebug[50];
+        _stprintf_s(coldebug, 50, TEXT("SARCHING_NOW"));
+        SetWindowText(hWnd, coldebug);
+    }
     return abs(hue - HueScreen) >= 4;
 }
 
@@ -180,17 +186,18 @@ PuyoColor JudgePuyoColor(int PuyoNum) {
     int AveR = 0;
     int AveG = 0;
     int AveB = 0;
-    for (int num = -1; num <= 1; num++) {
-        SearchPuyoPosition.first += num * 3;
-        COLORREF color = img.GetPixel(SearchPuyoPosition.first, SearchPuyoPosition.second);
+    int dX[5] = { -3,0,3,0,0 };
+    int dY[5] = { 0,0,0,-3,3 };
+    for (int num = 0; num < 5; num++) {
+        COLORREF color = img.GetPixel(SearchPuyoPosition.first + dX[num], SearchPuyoPosition.second + dY[num]);
         AveR += GetRValue(color);
         AveG += GetGValue(color);
         AveB += GetBValue(color);
     }
-    int hue = GetHue(AveR / 3 , AveG / 3, AveB / 3);
+    int hue = GetHue(AveR / 5 , AveG / 5, AveB / 5);
     TCHAR coldebug[50];
     _stprintf_s(coldebug, 50, TEXT("%d"), hue);
-    SetWindowText(hWnd, coldebug);
+    //if(PuyoNum == 0)SetWindowText(hWnd, coldebug);
     
     if (hue >= 30 && hue <= 50)//yellow
         return PuyoColor::yellow;
@@ -206,47 +213,165 @@ PuyoColor JudgePuyoColor(int PuyoNum) {
     return PuyoColor::none;
 }
 
+std::pair<int,int> NextPuyo;
+std::pair<int,int> TwoNextPuyo;
+bool StartFlag = false;
+bool UsePuyoAlreadySetFour = false;
+std::vector<int> UsePuyo(5, -1);
+
+
+void SetUsePuyoColor(const PuyoColor& Puyo) {
+
+    if (UsePuyoAlreadySetFour)return;
+    int UseColorCount = 0;
+    for (int i = 0; i < 5; i++) {
+        if (UsePuyo[i] != -1) {
+            UseColorCount++;
+        }
+    }
+
+    for (int i = 0; i < 5; i++) {
+        if (Puyo == PuyoColor(i) && UsePuyo[i] == -1) {
+            UsePuyo[i] = UseColorCount;
+            UseColorCount++;
+        }
+    }
+
+    if (UseColorCount == 4)
+        UsePuyoAlreadySetFour = true;
+}
+
+
 int search() {//探索のメイン関数
     int PuyoOrder[30];
     //ネクネクの組ぷよの色を読み込む
-    //PuyoOrder[0] = 
-    //PuyoOrder[1] = 
-    //PuyoOrder[2] = 
-    for (int count = 0; count < 5; count++) {
-        //次の手以降のツモをランダムに生成(モンテカルロ法)
-        for (int order = 3; order < 30; order++) {
-            PuyoOrder[order] = xor128() % 16;//ツモをランダムに生成
-        }
-        /*
-        memo:ツモは5+5*4/2=15種類だけど5*5でやっちゃってよさそう（ツモの作り方もこうなってるでしょう！）
-        */
+    PuyoOrder[0] = NextPuyo.first * 4 + NextPuyo.second;
+    PuyoOrder[1] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
+    NextPuyo = TwoNextPuyo;
 
+    PuyoColor Color[2];
+    Color[0] = JudgePuyoColor(2);
+    Color[1] = JudgePuyoColor(3);
+    while (int(Color[0]) == -1 || int(Color[1]) == -1) {
+        Sleep(10);
+        Color[0] = JudgePuyoColor(2);
+        Color[1] = JudgePuyoColor(3);
+    }
+    SetUsePuyoColor(Color[0]);
+    SetUsePuyoColor(Color[1]);
+    TwoNextPuyo = std::make_pair(UsePuyo[int(Color[0])], UsePuyo[int(Color[1])]);
+
+    PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
+
+    const int BEAM_WIDTH = 25;
+    const int MAX_DEPTH = 20;
+    int memoryscore = 0;
+
+    std::vector<int> ReserveOperation(5);
+
+    for (int count = 0; count < 1; count++) {
+        //次の手以降のツモをランダムに生成(モンテカルロ法)
+        for (int order = 3; order < MAX_DEPTH; order++) {
+            PuyoOrder[order] = xor128() % 16;
+        }
         //ランダムに生成したツモ列に対して、ビームサーチを実行し、一番よい次の手を決定（手の番号と、最大連鎖数）
-        /* 
-        memo:評価関数には、連鎖が起こる場合と起こらない場合を分けて考える必要がある。
-        連鎖を起こす場合、連鎖数の評価にボーナスをつけるとよさそう？（いつまでたっても発火しないことにつながらない？）
-        */
-        std::vector<GameState> states[30 + 1];
-        //当然連鎖実行操作も含む
+        std::vector<GameState> States[MAX_DEPTH + 1];
+        GameState Initial_State;
+        States[0].emplace_back(Initial_State);
+        for (int depth = 0; depth < MAX_DEPTH; depth++) {
+            
+            sort(States[depth].begin(), States[depth].end());
+            reverse(States[depth].begin(), States[depth].end());
+
+            if (States[depth].size() > BEAM_WIDTH)
+                States[depth].erase(States[depth].begin() + BEAM_WIDTH, States[depth].end());
+                
+            for (GameState State : States[depth]) {
+                for (int OperationNumber = 1; OperationNumber <= 22; OperationNumber++) {
+                    //GameState CurrentState = State;
+                    
+                    State.OperationAndValueState(OperationNumber,
+                                                        std::make_pair(signed char(PuyoOrder[depth] / 4),
+                                                        signed char(PuyoOrder[depth] % 4)),
+                                                        depth == 0);
+                    States[depth + 1].emplace_back(State);
+                }
+            }
+        }
+        sort(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
+        reverse(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
+
+        ReserveOperation[count] = States[MAX_DEPTH][0].FirstOperation;
+        memoryscore = States[MAX_DEPTH][0].StateScore;
 
     }
     //5つのうち、もっとも良い手を選択し、MovePuyoで操作を実行
-
-    return 0;
+    
+    return ReserveOperation[0];
+    /*
+    std::vector<std::pair<int, int>> OperationCount(23, std::make_pair(0, 0));
+    for (int count = 0; count < 5; count++) {
+        OperationCount[ReserveOperation[count]].first++;
+        OperationCount[ReserveOperation[count]].second = ReserveOperation[count];
+    }
+    sort(OperationCount.begin(), OperationCount.end());
+    if (OperationCount[4].first == 1) {
+        return OperationCount[xor128() % 5].second;
+    }
+    else if (OperationCount[4].first == 2) {
+        if (OperationCount[3].first == 2) return OperationCount[3 + xor128() % 2].second;
+        else return OperationCount[4].second;
+    }
+    else {
+        return OperationCount[4].second;
+    }
+    return OperationCount[4].second;
+    //return 1;// xor128() % 22 + 1;
+    */
 }
 
-void JudgeStart(){
+bool StartFlag2 = false;
+bool StartFlag3 = false;
+bool JudgeStart(){
+    PuyoColor Color[4];
+    for (int i = 0; i < 4; i++) {
+        Color[i] = JudgePuyoColor(i);
+        SetUsePuyoColor(Color[i]);
+    }
+    if (Color[0] != PuyoColor::none && Color[1] != PuyoColor::none && Color[2] != PuyoColor::none && Color[3] != PuyoColor::none) {
+       
+            StartFlag = true;
 
+            NextPuyo = std::make_pair(UsePuyo[int(Color[0])], UsePuyo[int(Color[1])]);
+            TwoNextPuyo = std::make_pair(UsePuyo[int(Color[2])], UsePuyo[int(Color[3])]);
+            
+            TCHAR coldebug[50];
+            _stprintf_s(coldebug, 50, TEXT("START"));
+            SetWindowText(hWnd, coldebug);
+            
+            return true;
+        }
+    
 }
+//error 赤々黄紫
 
 void Update() {
-    
+
+    //JudgeStartがtrueになるまでループ
+    if (!StartFlag && JudgeStart())return;
+    //JudgeStart 以降は IsTurnTransition　をみる
     if (!IsTurnTransition()) return;
+
+    TimeController time;
+    time.Reset();
     if (isDowned) {//下矢印キーを離す
         DownPuyo();
     }
-    JudgePuyoColor(0);
-    MovePuyo(xor128() % 22 + 1);
+    MovePuyo(search());
 
-    Sleep(120);
+    int jikan =int(time.Current());
+    TCHAR coldebug[50];
+
+    _stprintf_s(coldebug, 50, TEXT("%d"), jikan);
+    SetWindowText(hWnd, coldebug);
 }

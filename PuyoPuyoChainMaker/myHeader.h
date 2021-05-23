@@ -1,4 +1,5 @@
 #pragma once
+#pragma GCC optimize("O3")
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +8,7 @@
 #include <chrono>
 #include <vector>
 #include <queue>
+#include <unordered_set>
 
 #define GameWindowSizeX  816
 #define GameWindowSizeY  489
