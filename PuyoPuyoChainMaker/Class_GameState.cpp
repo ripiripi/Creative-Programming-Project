@@ -1,5 +1,6 @@
 #include "myHeader.h"
 #include "Class_GameState.h"
+#include "Class_TimeController.h"
 
 const int GameWidth = 6;
 const int GameHeight = 12;
@@ -20,11 +21,31 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	int xPos = OperationNumber / 4 - 2;
 	//指定されたぷよを置き、ぷよが消えれば消し、連鎖があれば評価点を加える。
 	//ただし、現在は連鎖数を高くしたい(8連鎖以上)ので、2^9連鎖の時はペナルティをつける(負の評価点)
+	
+
 	PutPairPuyo(xPos, dir, PairPuyo);
+
 	int rensa = RensaSimulation();
-	score += 1500 * max(rensa, 0);
+	max_rensa = max(rensa, max_rensa);
+	score -= 1000 * max(rensa-1, 0);
 	
-	
+	int StateHeight[6];
+	int HeightAve = 0;
+	for(int xPos = 0;xPos<GameWidth;xPos++){
+		for (int height = 0; height < GameHeight; height++) {
+			StateHeight[xPos] = height;
+			if (Board[xPos][GameHeight - 1 - height] == -1) {
+				break;
+			}
+		}
+		HeightAve += StateHeight[xPos];
+	}
+	HeightAve /= GameWidth;
+	int hosei[6] = {1,0,-1,-1,0,1};
+	for (int xPos = 0; xPos < GameWidth; xPos++) {
+		score += 40 * abs(hosei[xPos] * 2 + HeightAve - StateHeight[xPos]);
+	}
+
 	//ぷよを置いた後の盤面を評価する。
 	//各列に1コまたは2コのぷよ列を置き、連鎖が起こる場合は連鎖数を求め、評価点の最大値を加える
 	//memo:とりあえず2個同色のぷよをタテに置くことにする
@@ -105,9 +126,56 @@ bool GameState::DownPuyo() {
 	}
 	return DownFlag;
 }
+
+int GameState::Count(int x, int y) {
+	int cnt = 0;
+	signed char c = Board[x][y];
+	Board[x][y] = -1; cnt++;
+	if (x + 1 < GameWidth && Board[x + 1][y] == c) cnt += Count(x + 1, y);
+	if (y + 1 < GameHeight && Board[x][y + 1] == c)cnt += Count(x, y + 1);
+	if (x - 1 >= 0 && Board[x - 1][y] == c)cnt +=  Count(x - 1, y);
+	if (y - 1 >= 0 && Board[x][y - 1] == c)cnt +=  Count(x, y - 1);
+
+	Board[x][y] = c;
+	return cnt;
+}
+void Vanish(signed char f[GameWidth][GameHeight], int x, int y)
+{
+	signed char c = f[x][y];        /// 自分の色
+
+	f[x][y] = -1;        /// 色ぷよを消す
+	/// 固ぷよ→おじゃまぷよ or おじゃまぷよ→消す
+	if (x + 1 < GameWidth) {
+		if (f[x + 1][y] == signed char(PuyoColor::none)) f[x + 1][y] = 0;
+	}
+	if (y + 1 < GameHeight) {
+		if (f[x][y + 1] == signed char(PuyoColor::none)) f[x][y + 1] = 0;
+	}
+	if (x - 1 >= 0) {
+		if (f[x - 1][y] == signed char(PuyoColor::none)) f[x - 1][y] = 0;
+	}
+	if (y - 1 >= 0) {
+		 if (f[x][y - 1] == signed char(PuyoColor::none)) f[x][y - 1] = 0;
+	}
+
+	if (x + 1 < GameWidth && f[x + 1][y] == c) Vanish(f, x + 1, y);
+	if (y + 1 < GameHeight && f[x][y + 1] == c) Vanish(f, x, y + 1);
+	if (x - 1 >= 0 && f[x - 1][y] == c) Vanish(f, x - 1, y);
+	if (y - 1 >= 0 && f[x][y - 1] == c) Vanish(f, x, y - 1);
+}
+
+void CopyField(signed char to[GameWidth][GameHeight], signed char from[GameWidth][GameHeight])
+{
+	for (int y = 0; y < GameHeight; y++) {
+		for (int x = 0; x < GameWidth; x++) {
+			to[x][y] = from[x][y];
+		}
+	}
+}
+
 int cnt = 0;
 //ぷよを置いた後に呼び出される連鎖シュミレーション関数（盤面への変更含ム）　返り値：連鎖数
-int GameState::RensaSimulation() {
+int GameState::RensaSimulation() {//TODO:計算量の改善
 	int RensaNum = 0;
 	bool RensaFlag = false;
 	int dx[4] = { 1,-1,0, 0};
@@ -115,6 +183,7 @@ int GameState::RensaSimulation() {
 
 	do {
 		RensaFlag = false;
+		
 		bool isVisited[GameWidth][GameHeight];
 		for (int yPos = 0; yPos < GameHeight; yPos++)
 			for (int xPos = 0; xPos < GameWidth; xPos++)isVisited[xPos][yPos] = false;//初期化
@@ -124,12 +193,12 @@ int GameState::RensaSimulation() {
 				if (isVisited[xPos][yPos])continue;//探索済みなら無視
 				else isVisited[xPos][yPos] = true;//探索
 				if (Board[xPos][yPos] == signed char(PuyoColor::none) || Board[xPos][yPos] == signed char(PuyoColor::jamma)) continue;//お邪魔もしくは空白の場合は無視
-				
+
 				std::queue<std::pair<int, int>> que;
 				std::vector<std::pair<int,int>> ErasePuyoPos;
 				ErasePuyoPos.emplace_back(std::make_pair(xPos,yPos));
 				que.push(std::make_pair(xPos, yPos));
-
+				
 				while (!que.empty()) {//bfs
 					std::pair<int, int> Pos = que.front();
 					que.pop();
@@ -146,11 +215,12 @@ int GameState::RensaSimulation() {
 					}
 				}
 				if (ErasePuyoPos.size() >= 4) {//4つ以上繋がってたら、連鎖判定
-					
+
 					for (auto Pos : ErasePuyoPos)Board[Pos.first][Pos.second] = signed char(PuyoColor::none);
 					RensaFlag = true;
 				}
 				
+
 			}
 
 		if (RensaFlag) {

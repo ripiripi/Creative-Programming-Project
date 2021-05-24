@@ -253,7 +253,7 @@ int search() {//探索のメイン関数
     Color[0] = JudgePuyoColor(2);
     Color[1] = JudgePuyoColor(3);
     while (int(Color[0]) == -1 || int(Color[1]) == -1) {
-        Sleep(10);
+        Sleep(5);
         Color[0] = JudgePuyoColor(2);
         Color[1] = JudgePuyoColor(3);
     }
@@ -263,10 +263,11 @@ int search() {//探索のメイン関数
 
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
-    const int BEAM_WIDTH = 25;
-    const int MAX_DEPTH = 20;
+    const int BEAM_WIDTH = 22;
+    const int MAX_DEPTH = 8;
     int memoryscore = 0;
 
+    int totaltime = 0;
     std::vector<int> ReserveOperation(5);
 
     for (int count = 0; count < 1; count++) {
@@ -281,7 +282,6 @@ int search() {//探索のメイン関数
         for (int depth = 0; depth < MAX_DEPTH; depth++) {
             
             sort(States[depth].begin(), States[depth].end());
-            reverse(States[depth].begin(), States[depth].end());
 
             if (States[depth].size() > BEAM_WIDTH)
                 States[depth].erase(States[depth].begin() + BEAM_WIDTH, States[depth].end());
@@ -290,25 +290,31 @@ int search() {//探索のメイン関数
                 for (int OperationNumber = 1; OperationNumber <= 22; OperationNumber++) {
                     //GameState CurrentState = State;
                     
+                    TimeController time;
+                    time.Reset();
                     State.OperationAndValueState(OperationNumber,
                                                         std::make_pair(signed char(PuyoOrder[depth] / 4),
                                                         signed char(PuyoOrder[depth] % 4)),
                                                         depth == 0);
+                    totaltime += int(time.Current());
                     States[depth + 1].emplace_back(State);
                 }
             }
         }
         sort(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
-        reverse(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
 
         ReserveOperation[count] = States[MAX_DEPTH][0].FirstOperation;
         memoryscore = States[MAX_DEPTH][0].StateScore;
 
     }
+    TCHAR coldebug[50];
+
+    _stprintf_s(coldebug, 50, TEXT("%d"), memoryscore);//totaltime);
+    SetWindowText(hWnd, coldebug);
     //5つのうち、もっとも良い手を選択し、MovePuyoで操作を実行
     
     return ReserveOperation[0];
-    /*
+    
     std::vector<std::pair<int, int>> OperationCount(23, std::make_pair(0, 0));
     for (int count = 0; count < 5; count++) {
         OperationCount[ReserveOperation[count]].first++;
@@ -327,7 +333,7 @@ int search() {//探索のメイン関数
     }
     return OperationCount[4].second;
     //return 1;// xor128() % 22 + 1;
-    */
+    
 }
 
 bool StartFlag2 = false;
@@ -373,5 +379,5 @@ void Update() {
     TCHAR coldebug[50];
 
     _stprintf_s(coldebug, 50, TEXT("%d"), jikan);
-    SetWindowText(hWnd, coldebug);
+    //SetWindowText(hWnd, coldebug);
 }
