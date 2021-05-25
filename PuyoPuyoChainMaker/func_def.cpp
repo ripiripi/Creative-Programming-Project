@@ -241,6 +241,7 @@ void SetUsePuyoColor(const PuyoColor& Puyo) {
         UsePuyoAlreadySetFour = true;
 }
 
+GameState CurrentState;
 
 int search() {//探索のメイン関数
     int PuyoOrder[30];
@@ -263,8 +264,8 @@ int search() {//探索のメイン関数
 
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
-    const int BEAM_WIDTH = 22;
-    const int MAX_DEPTH = 8;
+    const int BEAM_WIDTH = 18;
+    const int MAX_DEPTH = 10;
     int memoryscore = 0;
 
     int totaltime = 0;
@@ -272,24 +273,24 @@ int search() {//探索のメイン関数
 
     for (int count = 0; count < 1; count++) {
         //次の手以降のツモをランダムに生成(モンテカルロ法)
-        for (int order = 3; order < MAX_DEPTH; order++) {
+        for (int order = 3; order < MAX_DEPTH; ++order) {
             PuyoOrder[order] = xor128() % 16;
         }
         //ランダムに生成したツモ列に対して、ビームサーチを実行し、一番よい次の手を決定（手の番号と、最大連鎖数）
         std::vector<GameState> States[MAX_DEPTH + 1];
-        GameState Initial_State;
+        GameState Initial_State = CurrentState;
         States[0].emplace_back(Initial_State);
-        for (int depth = 0; depth < MAX_DEPTH; depth++) {
+        for (int depth = 0; depth < MAX_DEPTH; ++depth) {
             
             sort(States[depth].begin(), States[depth].end());
-
+            reverse(States[depth].begin(), States[depth].end());
             if (States[depth].size() > BEAM_WIDTH)
                 States[depth].erase(States[depth].begin() + BEAM_WIDTH, States[depth].end());
                 
-            for (GameState State : States[depth]) {
-                for (int OperationNumber = 1; OperationNumber <= 22; OperationNumber++) {
-                    //GameState CurrentState = State;
-                    
+            
+            for (int OperationNumber = 1; OperationNumber <= 22; OperationNumber++) {
+                for (GameState State : States[depth]) {
+                
                     TimeController time;
                     time.Reset();
                     State.OperationAndValueState(OperationNumber,
@@ -302,21 +303,23 @@ int search() {//探索のメイン関数
             }
         }
         sort(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
-
+        reverse(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
         ReserveOperation[count] = States[MAX_DEPTH][0].FirstOperation;
-        memoryscore = States[MAX_DEPTH][0].StateScore;
+        CurrentState.OperationAndValueState(ReserveOperation[count], std::make_pair(signed char(PuyoOrder[0] / 4),signed char(PuyoOrder[0] % 4)), true);
+        memoryscore = States[MAX_DEPTH][0].max_rensa;
 
     }
     TCHAR coldebug[50];
 
-    _stprintf_s(coldebug, 50, TEXT("%d"), memoryscore);//totaltime);
+    _stprintf_s(coldebug, 50, TEXT("%d"), CurrentState.Board[1][11]);
     SetWindowText(hWnd, coldebug);
     //5つのうち、もっとも良い手を選択し、MovePuyoで操作を実行
-    
-    return ReserveOperation[0];
+    CurrentState.init();
+    CurrentState.debug();
+    return CurrentState.FirstOperation;
     
     std::vector<std::pair<int, int>> OperationCount(23, std::make_pair(0, 0));
-    for (int count = 0; count < 5; count++) {
+    for (int count = 0; count < 5; ++count) {
         OperationCount[ReserveOperation[count]].first++;
         OperationCount[ReserveOperation[count]].second = ReserveOperation[count];
     }
@@ -340,7 +343,8 @@ bool StartFlag2 = false;
 bool StartFlag3 = false;
 bool JudgeStart(){
     PuyoColor Color[4];
-    for (int i = 0; i < 4; i++) {
+    //StartFlag = true;
+    for (int i = 0; i < 4; ++i) {
         Color[i] = JudgePuyoColor(i);
         SetUsePuyoColor(Color[i]);
     }
@@ -373,11 +377,12 @@ void Update() {
     if (isDowned) {//下矢印キーを離す
         DownPuyo();
     }
-    MovePuyo(search());
+    int ope = search();
+    MovePuyo(ope);
 
     int jikan =int(time.Current());
     TCHAR coldebug[50];
 
-    _stprintf_s(coldebug, 50, TEXT("%d"), jikan);
+    _stprintf_s(coldebug, 50, TEXT("%d"),ope);
     //SetWindowText(hWnd, coldebug);
 }

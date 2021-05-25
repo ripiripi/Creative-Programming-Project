@@ -97,7 +97,7 @@ int CALLBACK WinMain(
     Sleep(300);
 
     OperationPuyo(VK_RETURN, 28);//プレイスタート
-    Sleep(2100);
+    Sleep(2000);
     //MovePuyo(2, 3);
 
     
@@ -138,6 +138,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_PAINT:
+        
         hdc = BeginPaint(hWnd, &ps);
 
         TextOut(hdc,
@@ -145,6 +146,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             greeting, _tcslen(greeting));
 
         EndPaint(hWnd, &ps);
+        
         break;
     case WM_MOUSEMOVE:
         GetCursorPos(&mouse_p);

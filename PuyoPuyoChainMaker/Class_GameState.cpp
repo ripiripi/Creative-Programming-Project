@@ -6,28 +6,34 @@ const int GameWidth = 6;
 const int GameHeight = 12;
 
 GameState::GameState() {
-	StateScore = 0;
+	MaxScore = -1000;
+	max_rensa = 0;
 	FirstOperation = 1;
 	for (int i = 0; i < GameWidth; i++)for (int j = 0; j < GameHeight; j++) {
 		Board[i][j] = signed char(PuyoColor::none);
 	}
 }
+void GameState::init() {
+	MaxScore = -1000;
+	max_rensa = 0;
+}
 
 int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed char, signed char>& PairPuyo,bool Flag) {//操作後の盤面の評価関数
+
 	int score = 0;
 	
 	if (Flag)FirstOperation = OperationNumber;
 	int dir = OperationNumber % 4;
-	int xPos = OperationNumber / 4 - 2;
+	int xSetPos = OperationNumber / 4;
 	//指定されたぷよを置き、ぷよが消えれば消し、連鎖があれば評価点を加える。
 	//ただし、現在は連鎖数を高くしたい(8連鎖以上)ので、2^9連鎖の時はペナルティをつける(負の評価点)
 	
 
-	PutPairPuyo(xPos, dir, PairPuyo);
+	PutPairPuyo(xSetPos, dir, PairPuyo);
 
-	int rensa = RensaSimulation();
+	int rensa =  RensaSimulation();
 	max_rensa = max(rensa, max_rensa);
-	score -= 1000 * max(rensa-1, 0);
+	score += 1000 * max(rensa-2, 0);
 	
 	int StateHeight[6];
 	int HeightAve = 0;
@@ -43,9 +49,11 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	HeightAve /= GameWidth;
 	int hosei[6] = {1,0,-1,-1,0,1};
 	for (int xPos = 0; xPos < GameWidth; xPos++) {
-		score += 40 * abs(hosei[xPos] * 2 + HeightAve - StateHeight[xPos]);
+		score -= 60 * abs(hosei[xPos] * 2 + HeightAve - StateHeight[xPos]);//1 + 
 	}
-
+	if (Board[2][0] != -1) {
+		score -= 1000000;
+	}
 	//ぷよを置いた後の盤面を評価する。
 	//各列に1コまたは2コのぷよ列を置き、連鎖が起こる場合は連鎖数を求め、評価点の最大値を加える
 	//memo:とりあえず2個同色のぷよをタテに置くことにする
@@ -66,7 +74,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	}
 	score += 1000 * MaxRensa;//実際の連鎖ボーナスより少し低くしている
 	*/
-	StateScore = score;
+	MaxScore = max(MaxScore,score);
 	return score;
 }
 //儂の場合入出力フェーズは良さげだけど明らかに探索でまずいことをやっていそう
@@ -74,7 +82,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 bool GameState::PutPuyo(int xPos, signed char col) {
 	
 	for (int yPos = GameHeight-1; yPos >= 0; yPos--) {
-		if (Board[xPos][yPos] == signed char(PuyoColor::none)) {//ぷよがあったら、その上に指定されたぷよを置く
+		if (Board[xPos][yPos] == signed char(PuyoColor::none)) {
 		Board[xPos][yPos] = col;//bug?
 		return true;
 		}
@@ -112,7 +120,7 @@ bool GameState::DownPuyo() {
 	bool DownFlag = false;
 	for (int xPos = 0; xPos < GameWidth; xPos++) {
 		int yNonePos = -1;//PuyoColor::noneのもののうち、一番y座標が大きいもの -1なら無し
-		for (int yPos = GameHeight - 1; yPos >= 0; yPos--) {
+		for (int yPos = GameHeight - 1; yPos >= 0; --yPos) {
 			if (Board[xPos][yPos] == signed char(PuyoColor::none) && yNonePos == -1) {
 				yNonePos = yPos;
 			}
@@ -127,6 +135,10 @@ bool GameState::DownPuyo() {
 	return DownFlag;
 }
 
+void GameState::debug() {
+}
+
+
 int GameState::Count(int x, int y) {
 	int cnt = 0;
 	signed char c = Board[x][y];
@@ -138,39 +150,6 @@ int GameState::Count(int x, int y) {
 
 	Board[x][y] = c;
 	return cnt;
-}
-void Vanish(signed char f[GameWidth][GameHeight], int x, int y)
-{
-	signed char c = f[x][y];        /// 自分の色
-
-	f[x][y] = -1;        /// 色ぷよを消す
-	/// 固ぷよ→おじゃまぷよ or おじゃまぷよ→消す
-	if (x + 1 < GameWidth) {
-		if (f[x + 1][y] == signed char(PuyoColor::none)) f[x + 1][y] = 0;
-	}
-	if (y + 1 < GameHeight) {
-		if (f[x][y + 1] == signed char(PuyoColor::none)) f[x][y + 1] = 0;
-	}
-	if (x - 1 >= 0) {
-		if (f[x - 1][y] == signed char(PuyoColor::none)) f[x - 1][y] = 0;
-	}
-	if (y - 1 >= 0) {
-		 if (f[x][y - 1] == signed char(PuyoColor::none)) f[x][y - 1] = 0;
-	}
-
-	if (x + 1 < GameWidth && f[x + 1][y] == c) Vanish(f, x + 1, y);
-	if (y + 1 < GameHeight && f[x][y + 1] == c) Vanish(f, x, y + 1);
-	if (x - 1 >= 0 && f[x - 1][y] == c) Vanish(f, x - 1, y);
-	if (y - 1 >= 0 && f[x][y - 1] == c) Vanish(f, x, y - 1);
-}
-
-void CopyField(signed char to[GameWidth][GameHeight], signed char from[GameWidth][GameHeight])
-{
-	for (int y = 0; y < GameHeight; y++) {
-		for (int x = 0; x < GameWidth; x++) {
-			to[x][y] = from[x][y];
-		}
-	}
 }
 
 int cnt = 0;
@@ -185,11 +164,11 @@ int GameState::RensaSimulation() {//TODO:計算量の改善
 		RensaFlag = false;
 		
 		bool isVisited[GameWidth][GameHeight];
-		for (int yPos = 0; yPos < GameHeight; yPos++)
+		for (int yPos = 0; yPos < GameHeight; ++yPos)
 			for (int xPos = 0; xPos < GameWidth; xPos++)isVisited[xPos][yPos] = false;//初期化
 
-		for (int yPos = 0; yPos < GameHeight; yPos++)
-			for (int xPos = 0; xPos < GameWidth; xPos++) {
+		for (int yPos = 0; yPos < GameHeight; ++yPos)
+			for (int xPos = 0; xPos < GameWidth; ++xPos) {
 				if (isVisited[xPos][yPos])continue;//探索済みなら無視
 				else isVisited[xPos][yPos] = true;//探索
 				if (Board[xPos][yPos] == signed char(PuyoColor::none) || Board[xPos][yPos] == signed char(PuyoColor::jamma)) continue;//お邪魔もしくは空白の場合は無視
@@ -202,7 +181,7 @@ int GameState::RensaSimulation() {//TODO:計算量の改善
 				while (!que.empty()) {//bfs
 					std::pair<int, int> Pos = que.front();
 					que.pop();
-					for (int idx = 0; idx < 4; idx++) {
+					for (int idx = 0; idx < 4; ++idx) {
 						int nxPos = Pos.first + dx[idx];
 						int nyPos = Pos.second + dy[idx];
 						if (nxPos < 0 || nxPos >= GameWidth || nyPos < 0 || nyPos >= GameHeight)continue;//盤面外に行ったらダメ
@@ -214,9 +193,11 @@ int GameState::RensaSimulation() {//TODO:計算量の改善
 						isVisited[nxPos][nyPos] = true;
 					}
 				}
+				
+				
 				if (ErasePuyoPos.size() >= 4) {//4つ以上繋がってたら、連鎖判定
 
-					for (auto Pos : ErasePuyoPos)Board[Pos.first][Pos.second] = signed char(PuyoColor::none);
+					for (auto Pos : ErasePuyoPos)Board[Pos.first][Pos.second] = -1;
 					RensaFlag = true;
 				}
 				
@@ -236,5 +217,5 @@ int GameState::RensaSimulation() {//TODO:計算量の改善
 
 bool GameState::operator<(const GameState& another) const
 {
-	return StateScore < another.StateScore;
+	return MaxScore < another.MaxScore;
 };

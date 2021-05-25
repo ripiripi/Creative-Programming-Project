@@ -4,14 +4,18 @@
 
 class GameState {
 private:
-	signed char Board[6][12];//”Õ–Êî•ñ
-	int max_rensa;
+	
+	
 	
 public:
-	int StateScore;
+	signed char Board[6][12];//”Õ–Êî•ñ
+	int max_rensa;
+	int MaxScore;
 	int FirstOperation;
 	GameState();
 	int Count(int x,int y);
+	void debug();
+	void init();
 	int OperationAndValueState(int OperationNumber,const std::pair<signed char, signed char>& PairPuyo,bool Flag);
 	bool PutPuyo(int xPos, signed char col);
 	void PutPairPuyo(int xPos, int dir,const std::pair<signed char, signed char>& PairPuyo);
