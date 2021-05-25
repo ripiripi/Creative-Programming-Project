@@ -6,6 +6,7 @@ const int GameWidth = 6;
 const int GameHeight = 12;
 
 GameState::GameState() {
+	RenScore = 0;
 	MaxScore = -1000;
 	max_rensa = 0;
 	FirstOperation = 1;
@@ -14,6 +15,7 @@ GameState::GameState() {
 	}
 }
 void GameState::init() {
+	RenScore = 0;
 	MaxScore = -1000;
 	max_rensa = 0;
 }
@@ -33,7 +35,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 
 	int rensa =  RensaSimulation();
 	max_rensa = max(rensa, max_rensa);
-	score += 1000 * max(rensa-2, 0);
+	score += 1000 * max(rensa -3, 0);
 	
 	int StateHeight[6];
 	int HeightAve = 0;
@@ -49,12 +51,14 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	HeightAve /= GameWidth;
 	int hosei[6] = {1,0,-1,-1,0,1};
 	for (int xPos = 0; xPos < GameWidth; xPos++) {
-		score -= 60 * abs(hosei[xPos] * 2 + HeightAve - StateHeight[xPos]);//1 + 
+		score -= 60 * abs(hosei[xPos] * 1 + HeightAve - StateHeight[xPos]);
 	}
-	if (Board[2][0] != -1) {
-		score -= 1000000;
+	if (Board[2][2] != -1) {//ばたんきゅーは回避
+		score -= 1000;
 	}
-	//ぷよを置いた後の盤面を評価する。
+	score += RenScore;
+
+	//ぷよを置いた後の盤面を評価するS。
 	//各列に1コまたは2コのぷよ列を置き、連鎖が起こる場合は連鎖数を求め、評価点の最大値を加える
 	//memo:とりあえず2個同色のぷよをタテに置くことにする
 	/*
@@ -162,7 +166,8 @@ int GameState::RensaSimulation() {//TODO:計算量の改善
 
 	do {
 		RensaFlag = false;
-		
+		RenScore = 0;
+
 		bool isVisited[GameWidth][GameHeight];
 		for (int yPos = 0; yPos < GameHeight; ++yPos)
 			for (int xPos = 0; xPos < GameWidth; xPos++)isVisited[xPos][yPos] = false;//初期化
@@ -195,10 +200,15 @@ int GameState::RensaSimulation() {//TODO:計算量の改善
 				}
 				
 				
-				if (ErasePuyoPos.size() >= 4) {//4つ以上繋がってたら、連鎖判定
-
-					for (auto Pos : ErasePuyoPos)Board[Pos.first][Pos.second] = -1;
-					RensaFlag = true;
+				if (ErasePuyoPos.size() > 1) {
+					if (ErasePuyoPos.size() >= 4) {//4つ以上繋がってたら、連鎖判定
+						for (auto Pos : ErasePuyoPos)Board[Pos.first][Pos.second] = -1;
+						RensaFlag = true;
+					}
+					else if (ErasePuyoPos.size() == 3) {
+						RenScore += 120;
+					}
+					else RenScore += 30;
 				}
 				
 

@@ -4,7 +4,7 @@
 
 class GameState {
 private:
-	
+	int RenScore;
 	
 	
 public:

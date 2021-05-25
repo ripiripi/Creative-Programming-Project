@@ -264,8 +264,8 @@ int search() {//探索のメイン関数
 
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
-    const int BEAM_WIDTH = 18;
-    const int MAX_DEPTH = 10;
+    const int BEAM_WIDTH = 50;
+    const int MAX_DEPTH = 3;
     int memoryscore = 0;
 
     int totaltime = 0;
@@ -306,12 +306,12 @@ int search() {//探索のメイン関数
         reverse(States[MAX_DEPTH].begin(), States[MAX_DEPTH].end());
         ReserveOperation[count] = States[MAX_DEPTH][0].FirstOperation;
         CurrentState.OperationAndValueState(ReserveOperation[count], std::make_pair(signed char(PuyoOrder[0] / 4),signed char(PuyoOrder[0] % 4)), true);
-        memoryscore = States[MAX_DEPTH][0].max_rensa;
+        memoryscore = States[MAX_DEPTH][0].MaxScore;
 
     }
     TCHAR coldebug[50];
 
-    _stprintf_s(coldebug, 50, TEXT("%d"), CurrentState.Board[1][11]);
+    _stprintf_s(coldebug, 50, TEXT("%d"), memoryscore);
     SetWindowText(hWnd, coldebug);
     //5つのうち、もっとも良い手を選択し、MovePuyoで操作を実行
     CurrentState.init();
