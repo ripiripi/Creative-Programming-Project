@@ -10,17 +10,20 @@ GameState::GameState() {
 	MaxScore = -1000;
 	max_rensa = 0;
 	FirstOperation = 1;
+	CanFlag = true;
 	for (int i = 0; i < GameWidth; i++)for (int j = 0; j < GameHeight; j++) {
 		Board[i][j] = signed char(PuyoColor::none);
 	}
 }
 void GameState::init() {
+	CanFlag = true;
 	RenScore = 0;
 	MaxScore = -1000;
 	max_rensa = 0;
 }
 
 int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed char, signed char>& PairPuyo,bool Flag) {//操作後の盤面の評価関数
+	if (!CanFlag)return -10000;
 
 	int score = 0;
 	
@@ -29,13 +32,27 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	int xSetPos = OperationNumber / 4;
 	//指定されたぷよを置き、ぷよが消えれば消し、連鎖があれば評価点を加える。
 	//ただし、現在は連鎖数を高くしたい(8連鎖以上)ので、2^9連鎖の時はペナルティをつける(負の評価点)
-	
+	if (Board[xSetPos][4] != -1) {
+		MaxScore = -10000;
+		CanFlag = false;
+		return -10000;
+	}
+	if (xSetPos == 0 && Board[1][4] != -1) {
+		MaxScore = -10000;
+		CanFlag = false;
+		return -10000;
+	}
+	if (xSetPos > 1 &&   Board[xSetPos-1][4] != -1) {
+		MaxScore = -10000;
+		CanFlag = false;
+		return -10000;
+	}
 
 	PutPairPuyo(xSetPos, dir, PairPuyo);
 
 	int rensa =  RensaSimulation();
 	max_rensa = max(rensa, max_rensa);
-	score += 1000 * max(rensa -3, 0);
+	score += 1000 * max(rensa-3, 0);
 	
 	int StateHeight[6];
 	int HeightAve = 0;

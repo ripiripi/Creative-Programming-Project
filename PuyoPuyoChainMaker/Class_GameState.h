@@ -5,7 +5,7 @@
 class GameState {
 private:
 	int RenScore;
-	
+	bool CanFlag;
 	
 public:
 	signed char Board[6][12];//”Õ–Êî•ñ

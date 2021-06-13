@@ -83,21 +83,7 @@ void MovePuyo(int num){//num(1-22)
 		3:  右回転(x)
         2: 一回転(入れ替え)
 	*/
-    
-    switch (dir) {
-    case 1:
-        break;
-    case 0:
-        OperationPuyo(0x5A,ScanCodeZ);
-        break;
-    case 3:
-        OperationPuyo(0x58, ScanCodeX);
-        break;
-    case 2:
-        OperationPuyo(0x5A, ScanCodeZ);
-        OperationPuyo(0x5A, ScanCodeZ);
-        break;
-    }
+    int MPos = pos;
     while (pos != 0) {
         if (pos > 0) {
             OperationPuyo(VK_RIGHT, ScanCodeRight);
@@ -108,6 +94,27 @@ void MovePuyo(int num){//num(1-22)
             pos++;
         }
     }
+    switch (dir) {
+    case 1:
+        break;
+    case 0:
+        OperationPuyo(0x5A,ScanCodeZ);
+        break;
+    case 3:
+        OperationPuyo(0x58, ScanCodeX);
+        break;
+    case 2:
+        if (MPos >= 0) {
+            OperationPuyo(0x5A, ScanCodeZ);
+            OperationPuyo(0x5A, ScanCodeZ);
+        }
+        else {
+            OperationPuyo(0x58, ScanCodeX);
+            OperationPuyo(0x58, ScanCodeX);
+        }
+        break;
+    }
+    
     DownPuyo();
 
 }
@@ -130,7 +137,23 @@ int GetHue(int r,int g,int b) {
     if (hue < 0)hue += 360;
     return hue;
 }
+int GetValue() {
+    //画像の取得
+    CRect targetRect(0, 0, GameWindowSizeX, GameWindowSizeY);
+    HDC hWndDC = GetDC(puyoWnd);
 
+    CImage img;
+    img.Create(targetRect.Width(), targetRect.Height(), 24);
+    CImageDC imgDC(img);
+
+    // デスクトップ画像をDIBSECTIONへ転送
+    BitBlt(imgDC, 0, 0, targetRect.Width(), targetRect.Height(), hWndDC, targetRect.left, targetRect.top, SRCCOPY);
+
+    ReleaseDC(hWnd, hWndDC);
+    COLORREF color = img.GetPixel(325, 120);//325,120
+
+    return max(GetRValue(color), max(GetGValue(color), GetBValue(color)))* 100 / 255;
+}
 bool IsTurnTransition() {
     //画像の取得
     CRect targetRect(0, 0, GameWindowSizeX, GameWindowSizeY);
@@ -150,13 +173,14 @@ bool IsTurnTransition() {
     
     _stprintf_s(coldebug, 50, TEXT("%d"), hue);
     //SetWindowText(hWnd, coldebug);
+    int Value = max(GetRValue(color), max(GetGValue(color), GetBValue(color)))*100 /255;
     
-    if (abs(hue - HueScreen) >= 4) {
+    if (abs(hue - HueScreen) >= 4 && Value >= 80) {
         TCHAR coldebug[50];
         _stprintf_s(coldebug, 50, TEXT("SARCHING_NOW"));
         SetWindowText(hWnd, coldebug);
     }
-    return abs(hue - HueScreen) >= 4;
+    return abs(hue - HueScreen) >= 4 && Value >= 80;
 }
 
 PuyoColor JudgePuyoColor(int PuyoNum) {
@@ -177,7 +201,7 @@ PuyoColor JudgePuyoColor(int PuyoNum) {
         SearchPuyoPosition = std::make_pair(313, 105);
         break;
     case 2://ネクネク　上
-        SearchPuyoPosition = std::make_pair(333, 134);
+        SearchPuyoPosition = std::make_pair(333, 132);
         break;
     case 3://ネクネク　下
         SearchPuyoPosition = std::make_pair(333, 153);
@@ -189,6 +213,7 @@ PuyoColor JudgePuyoColor(int PuyoNum) {
     int dX[5] = { -3,0,3,0,0 };
     int dY[5] = { 0,0,0,-3,3 };
     for (int num = 0; num < 5; num++) {
+        
         COLORREF color = img.GetPixel(SearchPuyoPosition.first + dX[num], SearchPuyoPosition.second + dY[num]);
         AveR += GetRValue(color);
         AveG += GetGValue(color);
@@ -199,15 +224,15 @@ PuyoColor JudgePuyoColor(int PuyoNum) {
     _stprintf_s(coldebug, 50, TEXT("%d"), hue);
     //if(PuyoNum == 0)SetWindowText(hWnd, coldebug);
     
-    if (hue >= 30 && hue <= 50)//yellow
+    if (hue >= 25 && hue <= 55)//yellow
         return PuyoColor::yellow;
     else if (hue >= 265 && hue <= 285)
         return PuyoColor::purple;//purple
-    else if (hue >= 210 && hue <= 225)//blue
+    else if (hue >= 205 && hue <= 225)//blue
         return PuyoColor::blue;
     else if (hue >= 350 || hue <= 10)//red
         return PuyoColor::red;
-    else if (hue >= 100 && hue <= 115)//green
+    else if (hue >= 85 && hue <= 125)//green
         return PuyoColor::green;
 
     return PuyoColor::none;
@@ -264,8 +289,8 @@ int search() {//探索のメイン関数
 
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
-    const int BEAM_WIDTH = 50;
-    const int MAX_DEPTH = 3;
+    const int BEAM_WIDTH = 25;
+    const int MAX_DEPTH = 5;
     int memoryscore = 0;
 
     int totaltime = 0;
@@ -348,7 +373,12 @@ bool JudgeStart(){
         Color[i] = JudgePuyoColor(i);
         SetUsePuyoColor(Color[i]);
     }
-    if (Color[0] != PuyoColor::none && Color[1] != PuyoColor::none && Color[2] != PuyoColor::none && Color[3] != PuyoColor::none) {
+    int Value = GetValue();
+    TCHAR coldebug[50];
+
+    _stprintf_s(coldebug, 50, TEXT("%d"), Value);
+    SetWindowText(hWnd, coldebug);
+    if (Value<85 && Color[0] != PuyoColor::none && Color[1] != PuyoColor::none && Color[2] != PuyoColor::none && Color[3] != PuyoColor::none) {
        
             StartFlag = true;
 
