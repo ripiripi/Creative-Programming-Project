@@ -13,13 +13,14 @@ public:
 	int MaxScore;
 	int FirstOperation;
 	GameState();
-	int Count(int x,int y);
 	void debug();
 	void init();
 	int OperationAndValueState(int OperationNumber,const std::pair<signed char, signed char>& PairPuyo,bool Flag);
-	bool PutPuyo(int xPos, signed char col);
-	void PutPairPuyo(int xPos, int dir,const std::pair<signed char, signed char>& PairPuyo);
+	std::pair<int,int> PutPuyo(int xPos, signed char col);
+	std::vector<std::pair<int, int>> PutPairPuyo(int xPos, int dir,const std::pair<signed char, signed char>& PairPuyo);
 	int RensaSimulation();
-	bool DownPuyo();
+	int RensaSimulationVer2(std::vector<std::pair<int,int>> PutPuyoPos);
+	bool RensaSearch(std::pair<int, int> Pos, bool isVisited[6][12],bool nextSearchPos[6]);
+	bool DownPuyoAfterRensa();
 	bool operator< (const GameState& another)const;
 };

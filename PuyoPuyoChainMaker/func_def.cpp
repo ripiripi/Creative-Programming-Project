@@ -3,6 +3,7 @@
 #include "Class_TimeController.h"
 
 const int ScanCodeReturn = 28;
+const int ScanCodeEscape = 1;
 const int ScanCodeV = 47;
 const int ScanCodeZ = 44;
 const int ScanCodeX = 45;
@@ -289,8 +290,11 @@ int search() {//探索のメイン関数
 
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
-    const int BEAM_WIDTH = 25;
-    const int MAX_DEPTH = 5;
+    //debug
+    OperationPuyo(VK_ESCAPE, ScanCodeEscape);
+
+    const int BEAM_WIDTH = 50;
+    const int MAX_DEPTH = 10;
     int memoryscore = 0;
 
     int totaltime = 0;
@@ -332,15 +336,18 @@ int search() {//探索のメイン関数
         ReserveOperation[count] = States[MAX_DEPTH][0].FirstOperation;
         CurrentState.OperationAndValueState(ReserveOperation[count], std::make_pair(signed char(PuyoOrder[0] / 4),signed char(PuyoOrder[0] % 4)), true);
         memoryscore = States[MAX_DEPTH][0].MaxScore;
-
     }
     TCHAR coldebug[50];
 
-    _stprintf_s(coldebug, 50, TEXT("%d"), memoryscore);
+    _stprintf_s(coldebug, 50, TEXT("%d"), (CurrentState.FirstOperation / 4)*10 + (CurrentState.FirstOperation % 4) * 1);
     SetWindowText(hWnd, coldebug);
     //5つのうち、もっとも良い手を選択し、MovePuyoで操作を実行
     CurrentState.init();
     CurrentState.debug();
+
+    OperationPuyo(VK_RETURN, 28);
+    Sleep(550);
+
     return CurrentState.FirstOperation;
     
     std::vector<std::pair<int, int>> OperationCount(23, std::make_pair(0, 0));
