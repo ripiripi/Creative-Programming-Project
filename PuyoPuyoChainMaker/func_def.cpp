@@ -296,9 +296,9 @@ int search() {//’Tõ‚ÌƒƒCƒ“ŠÖ”
     //debug
     OperationPuyo(VK_ESCAPE, ScanCodeEscape);
 
-    const int BEAM_WIDTH =100;
-    const int MAX_DEPTH = 28;
-    const int TRY_NUM = 3;
+    const int BEAM_WIDTH = 100;
+    const int MAX_DEPTH = 25;
+    const int TRY_NUM = 2;
 
     int totaltime = 0;
     std::vector<std::pair<int,int>> OpeAndRensaNum(TRY_NUM);//‘€ìA˜A½”

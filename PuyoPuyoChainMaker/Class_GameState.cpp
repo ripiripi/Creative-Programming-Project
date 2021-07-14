@@ -218,19 +218,19 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 	if (isVisited[xPos][yPos])return false;//探索済みなら無視
 	else isVisited[xPos][yPos] = true;//探索
 	if (Board[xPos][yPos] == signed char(PuyoColor::none) || Board[xPos][yPos] == signed char(PuyoColor::jamma)) return false;//お邪魔もしくは空白の場合は無視
-	TimeController rensatime;
 	
 	std::queue<int> que;
-	std::vector<int> ErasePuyoPos;
-	ErasePuyoPos.reserve(80);
-	ErasePuyoPos.emplace_back(xPos * GameHeight +  yPos);
+	//std::vector<int> ErasePuyoPos;
+	int ErasePuyoPos[80];
+	int sz = 1;
+	//ErasePuyoPos.reserve(80);
+	//ErasePuyoPos.emplace_back(xPos * GameHeight +  yPos);
+	ErasePuyoPos[0] = xPos * GameHeight + yPos;
 	que.push(xPos * GameHeight + yPos);
 	int dx[4] = { 1,-1,0, 0 };
 	int dy[4] = { 0, 0,-1,1 };
-	rensatime.Reset();
 	
 	while (!que.empty()) {
-		
 		int Pos = que.front();
 		que.pop();
 		for (int idx = 0; idx < 4; ++idx) {
@@ -241,24 +241,29 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 			if (Board[nxPos][nyPos] != Board[Pos / GameHeight][Pos % GameHeight])continue;//つながってないとダメ
 			//つながってるので追加、探索済みにする
 			que.push(nxPos * GameHeight + nyPos);
-			ErasePuyoPos.emplace_back(nxPos * GameHeight + nyPos);
+			//ErasePuyoPos.emplace_back(nxPos * GameHeight + nyPos);
+			ErasePuyoPos[sz] = nxPos * GameHeight + nyPos;
+			sz++;
 			isVisited[nxPos][nyPos] = true;
 		}
 	}
 
 
-	if (ErasePuyoPos.size() > 1) {
-		int EraseNum = ErasePuyoPos.size();
-		if (EraseNum >= 4) {//4つ以上繋がってたら、連鎖判定
-			for (auto EPos : ErasePuyoPos) {
+	if (sz > 1) {
+		if (sz >= 4) {//4つ以上繋がってたら、連鎖判定
+			/*for (auto EPos : ErasePuyoPos) {
 				Board[EPos/ GameHeight][EPos % GameHeight] = signed char(PuyoColor::none);
 				nextSearchPos[EPos / GameHeight] = true;
+			}*/
+			for (int i = 0; i < sz; i++) {
+				Board[ErasePuyoPos[i] / GameHeight][ErasePuyoPos[i] % GameHeight] = signed char(PuyoColor::none);
+				nextSearchPos[ErasePuyoPos[i] / GameHeight] = true;
 			}
 			//RenScore = 0;
 			return true;
 		}
-		else if (EraseNum == 3)RenScore += 120;
-		else if (EraseNum == 2)RenScore += 30;
+		else if (sz == 3)RenScore += 120;
+		else if (sz == 2)RenScore += 30;
 	}
 	return false;
 }
@@ -270,7 +275,8 @@ int GameState::RensaSimulationVer2(std::vector<std::pair<int, int>> PutPuyoPos) 
 	int dy[4] = { 0, 0,-1,1 };
 	bool nextSearchPos[GameWidth] = { false,false,false,false,false,false };
 
-	
+	TimeController t;
+	t.Reset();
 	
 	do {
 		RensaFlag = false;
@@ -282,17 +288,15 @@ int GameState::RensaSimulationVer2(std::vector<std::pair<int, int>> PutPuyoPos) 
 		if (RensaNum == 0) {//連鎖未発生時
 			
 			for (auto Pos : PutPuyoPos) {
-				RensaFlag = RensaFlag || RensaSearch(Pos,isVisited,nextSearchPos) ;
+				RensaFlag = RensaSearch(Pos,isVisited,nextSearchPos) || RensaFlag;
 			}
-			
-			nowtime++;
 		}
 		else {//連鎖発生時
 			bool SearchPos[GameWidth] = { false,false,false,false,false,false };
 			for (int xPos = 0; xPos < GameWidth; ++xPos) {
 				if (!nextSearchPos[xPos])continue;
 				for (int yPos = 0; yPos < GameHeight; ++yPos) {
-					RensaFlag = RensaFlag || RensaSearch(std::make_pair(xPos, yPos), isVisited, SearchPos);
+					RensaFlag = RensaSearch(std::make_pair(xPos, yPos), isVisited, SearchPos) || RensaFlag;
 				}
 			}
 			for (int xPos = 0; xPos < GameWidth; ++xPos)nextSearchPos[xPos] = SearchPos[xPos];
@@ -306,6 +310,8 @@ int GameState::RensaSimulationVer2(std::vector<std::pair<int, int>> PutPuyoPos) 
 		}
 	} while (RensaFlag);
 	
+	nowtime += t.Current();
+
 	return RensaNum;
 }
 
