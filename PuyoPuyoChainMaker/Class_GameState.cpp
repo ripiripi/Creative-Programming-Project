@@ -20,11 +20,12 @@ GameState::GameState() {
 }
 void GameState::init() {
 	CanFlag = true;
-	RenScore = 0;
+	//RenScore = 0;
 	MaxScore = -1000;
 	max_rensa = 0;
 }
 
+bool renketsu;
 int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed char, signed char>& PairPuyo,bool Flag) {//操作後の盤面の評価関数
 	if (!CanFlag) {
 		TCHAR coldebug[50];
@@ -32,7 +33,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 		//SetWindowText(hWnd, coldebug);
 		return -10000;
 	}
-	RenScore = 0;
+	//RenScore = 0;
 	int score = 0;
 	
 	if (Flag)FirstOperation = OperationNumber;
@@ -41,8 +42,10 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 
 	std::vector<std::pair<int, int>> PutPuyoPos = PutPairPuyo(xSetPos, dir, PairPuyo);
 
+	renketsu = true;
 	int rensa =  RensaSimulationVer2(PutPuyoPos);
 	max_rensa = max(rensa, max_rensa);
+	if (rensa > 1)CanFlag = false;
 
 	if (Board[xSetPos][1] != -1) {
 		//MaxScore = -10000;
@@ -94,7 +97,8 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	//memo:とりあえず2個同色のぷよをタテに置くことにする
 	
 	signed char save[6][12];
-	
+	renketsu = false;
+
 	memcpy(save, Board, sizeof(Board));//caution
 	int MaxRensa = 0;
 	for (int xPos = 0; xPos < GameWidth; xPos++) {
@@ -108,7 +112,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 			memcpy(Board, save, sizeof(save));//前の状態に戻す
 		}
 	}
-	score += 1500 * MaxRensa;//実際の連鎖ボーナスより少し低くしている
+	score += 1000 * MaxRensa;//実際の連鎖ボーナスより少し低くしている
 	
 	JudgeScore = score;
 	MaxScore = max(MaxScore,score);
@@ -241,6 +245,8 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 			if (Board[nxPos][nyPos] != Board[Pos / GameHeight][Pos % GameHeight])continue;//つながってないとダメ
 			//つながってるので追加、探索済みにする
 			que.push(nxPos * GameHeight + nyPos);
+			if (idx <= 1)RenScore += 120;
+			else RenScore += 40;
 			//ErasePuyoPos.emplace_back(nxPos * GameHeight + nyPos);
 			ErasePuyoPos[sz] = nxPos * GameHeight + nyPos;
 			sz++;
@@ -262,8 +268,8 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 			//RenScore = 0;
 			return true;
 		}
-		else if (sz == 3)RenScore += 120;
-		else if (sz == 2)RenScore += 30;
+		else if (renketsu  && sz == 3)RenScore += 180;
+		else if (renketsu && sz == 2)RenScore += 90;
 	}
 	return false;
 }

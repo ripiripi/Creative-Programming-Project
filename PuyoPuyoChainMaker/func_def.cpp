@@ -179,7 +179,7 @@ bool IsTurnTransition() {
     if (abs(hue - HueScreen) >= 4 && Value >= 80) {
         TCHAR coldebug[50];
         _stprintf_s(coldebug, 50, TEXT("SARCHING_NOW"));
-        //SetWindowText(hWnd, coldebug);
+        SetWindowText(hWnd, coldebug);
     }
     return abs(hue - HueScreen) >= 4 && Value >= 80;
 }
@@ -267,6 +267,7 @@ void SetUsePuyoColor(const PuyoColor& Puyo) {
         UsePuyoAlreadySetFour = true;
 }
 
+int ccnt = 0;
 GameState CurrentState;
 
 int search() {//探索のメイン関数
@@ -284,8 +285,7 @@ int search() {//探索のメイン関数
         Color[0] = JudgePuyoColor(2);
         Color[1] = JudgePuyoColor(3);
     }
-
-    
+    ccnt++;
 
     SetUsePuyoColor(Color[0]);
     SetUsePuyoColor(Color[1]);
@@ -294,12 +294,12 @@ int search() {//探索のメイン関数
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
     //debug
-    OperationPuyo(VK_ESCAPE, ScanCodeEscape);
+    //OperationPuyo(VK_ESCAPE, ScanCodeEscape);
 
-    const int BEAM_WIDTH = 100;
-    const int MAX_DEPTH = 25;
-    const int TRY_NUM = 2;
-
+    const int BEAM_WIDTH = 60;
+    const int MAX_DEPTH = 30;
+    int TRY_NUM = 2;
+    
     int totaltime = 0;
     std::vector<std::pair<int,int>> OpeAndRensaNum(TRY_NUM);//操作、連鎖数
     
@@ -346,7 +346,7 @@ int search() {//探索のメイン関数
                 MaxRensa = ope[OperationNumber];
                 MaxOpe = OperationNumber;
             }
-            else if (ope[OperationNumber] == MaxRensa && xor128() % 5 == 0) {
+            else if (ope[OperationNumber] == MaxRensa && xor128() % 2 == 0) {
                 MaxOpe = OperationNumber;
             }
         }
@@ -368,7 +368,7 @@ int search() {//探索のメイン関数
         }
     }
 
-    CurrentState.debug(false);
+    //CurrentState.debug(false);
     
 
     CurrentState.OperationAndValueState(ReturnOpe, std::make_pair(signed char(PuyoOrder[0] / 4), signed char(PuyoOrder[0] % 4)), true);
@@ -376,11 +376,11 @@ int search() {//探索のメイン関数
 
     TCHAR coldebug[50];
     _stprintf_s(coldebug, 50, TEXT("%d"), signed char(max_ren));
-    //SetWindowText(hWnd, coldebug);
+    SetWindowText(hWnd, coldebug);
 
     //ポーズ解除
-    OperationPuyo(VK_RETURN, 28);
-    Sleep(550);
+    //OperationPuyo(VK_RETURN, 28);
+    //Sleep(550);
     
     return ReturnOpe;
 }
@@ -430,7 +430,7 @@ void Update() {
     if (isDowned) {//下矢印キーを離す
         DownPuyo();
     }
-    Sleep(100);
+    Sleep(50);
     int ope = search();
     MovePuyo(ope);
 }
