@@ -271,7 +271,7 @@ int ccnt = 0;
 GameState CurrentState;
 
 int search() {//探索のメイン関数
-    int PuyoOrder[40];
+    int PuyoOrder[49];
     //ネクネクの組ぷよの色を読み込む
     PuyoOrder[0] = NextPuyo.first * 4 + NextPuyo.second;
     PuyoOrder[1] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
@@ -294,11 +294,11 @@ int search() {//探索のメイン関数
     PuyoOrder[2] = TwoNextPuyo.first * 4 + TwoNextPuyo.second;
 
     //debug
-    //OperationPuyo(VK_ESCAPE, ScanCodeEscape);
+    OperationPuyo(VK_ESCAPE, ScanCodeEscape);
 
-    const int BEAM_WIDTH = 60;
-    const int MAX_DEPTH = 30;
-    int TRY_NUM = 2;
+    const int BEAM_WIDTH = 50;
+    const int MAX_DEPTH = 28;
+    const int TRY_NUM = 5;
     
     int totaltime = 0;
     std::vector<std::pair<int,int>> OpeAndRensaNum(TRY_NUM);//操作、連鎖数
@@ -312,7 +312,7 @@ int search() {//探索のメイン関数
             PuyoOrder[order] = xor128() % 16;
         }
         //ランダムに生成したツモ列に対して、ビームサーチを実行し、一番よい次の手を決定（手の番号と、最大連鎖数）
-        std::vector<GameState> States[MAX_DEPTH + 1];
+        std::vector<GameState> States[49 + 1];
         GameState Initial_State = CurrentState;
         States[0].emplace_back(Initial_State);
 
@@ -368,7 +368,7 @@ int search() {//探索のメイン関数
         }
     }
 
-    //CurrentState.debug(false);
+    CurrentState.debug(false);
     
 
     CurrentState.OperationAndValueState(ReturnOpe, std::make_pair(signed char(PuyoOrder[0] / 4), signed char(PuyoOrder[0] % 4)), true);
@@ -376,11 +376,11 @@ int search() {//探索のメイン関数
 
     TCHAR coldebug[50];
     _stprintf_s(coldebug, 50, TEXT("%d"), signed char(max_ren));
-    SetWindowText(hWnd, coldebug);
+    //SetWindowText(hWnd, coldebug);
 
     //ポーズ解除
-    //OperationPuyo(VK_RETURN, 28);
-    //Sleep(550);
+    OperationPuyo(VK_RETURN, 28);
+    Sleep(550);
     
     return ReturnOpe;
 }

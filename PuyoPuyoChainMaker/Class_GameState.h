@@ -5,10 +5,10 @@
 class GameState {
 private:
 	int RenScore;
-	
 	int JudgeScore;
 	
 public:
+	int PuyoCount;
 	bool CanFlag;
 	signed char Board[6][12];//”Õ–Êî•ñ
 	int max_rensa;

@@ -8,6 +8,7 @@ const int GameHeight = 12;
 int nowtime;
 
 GameState::GameState() {
+	PuyoCount = 0;
 	RenScore = 0;
 	JudgeScore = 0;
 	MaxScore = -1000;
@@ -20,7 +21,7 @@ GameState::GameState() {
 }
 void GameState::init() {
 	CanFlag = true;
-	//RenScore = 0;
+	RenScore = 0;
 	MaxScore = -1000;
 	max_rensa = 0;
 }
@@ -44,6 +45,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 
 	renketsu = true;
 	int rensa =  RensaSimulationVer2(PutPuyoPos);
+	PuyoCount += 2;
 	max_rensa = max(rensa, max_rensa);
 	if (rensa > 1)CanFlag = false;
 
@@ -72,7 +74,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 				break;
 			}
 		}
-		if (StateHeight[xPos] >= 10) {
+		if (StateHeight[xPos] >= 11) {
 			//MaxScore = -10000;
 			CanFlag = false;
 			return -10000;
@@ -82,7 +84,7 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 	HeightAve /= GameWidth;
 	int hosei[6] = {1,0,-1,-1,0,1};
 	for (int xPos = 0; xPos < GameWidth; xPos++) {
-		score -= 90 * abs(hosei[xPos] * 2 + HeightAve - StateHeight[xPos]);
+		score -= 60 * abs(hosei[xPos] * 2 + HeightAve - StateHeight[xPos]);
 	}
 	if (Board[2][1] != -1) {//ばたんきゅーは回避
 		score -= 10000;
@@ -101,23 +103,34 @@ int GameState::OperationAndValueState(int OperationNumber,const std::pair<signed
 
 	memcpy(save, Board, sizeof(Board));//caution
 	int MaxRensa = 0;
+	int MaxHeight = 0;
 	for (int xPos = 0; xPos < GameWidth; xPos++) {
 		int Candidate = PuyoCandidate(xPos);
 		for (signed char PuyoKind = 0; PuyoKind < 4; PuyoKind++) {
 			if (((Candidate>>PuyoKind)& 1) == 0)continue;
 			//continue;
 			std::vector<std::pair<int, int>> PutPuyoPos2 = PutPairPuyo(xPos, 1, std::make_pair(PuyoKind, PuyoKind));//同色2コぷよを置く
-			MaxRensa = max(MaxRensa, RensaSimulationVer2(PutPuyoPos2));
+			int CurRensa = RensaSimulationVer2(PutPuyoPos2);
+			if (MaxRensa > CurRensa) {
+				MaxRensa = CurRensa;
+				MaxHeight = GameHeight - 1 - PutPuyoPos2[0].second;
+			}
+			else if (MaxRensa == CurRensa && CurRensa > 1) {
+				MaxHeight = max(GameHeight - 1 - PutPuyoPos2[0].second,MaxHeight);
+			}
+
+
 
 			memcpy(Board, save, sizeof(save));//前の状態に戻す
 		}
 	}
-	score += 1000 * MaxRensa;//実際の連鎖ボーナスより少し低くしている
+	score += 1000 * MaxRensa + MaxHeight * 200;//実際の連鎖ボーナスより少し低くしている
 	
 	JudgeScore = score;
 	MaxScore = max(MaxScore,score);
 	return rensa;
 }
+
 
 int GameState::PuyoCandidate(int xPos) {
 	int dx[5] = { -1,1,-1,1,0};
@@ -127,7 +140,7 @@ int GameState::PuyoCandidate(int xPos) {
 
 	for (int yPos = GameHeight - 1; yPos >= 0; --yPos) {
 		if (Board[xPos][yPos] == signed char(PuyoColor::none)) {
-			for (int k = 0; k < 4; ++k) {
+			for (int k = 0; k < 5; ++k) {
 				int nxPos = xPos + dx[k];
 				int nyPos = yPos + dy[k];
 				if (nxPos < 0 || nxPos >= GameWidth || nyPos < 0 || nyPos >= GameHeight)continue;
@@ -135,7 +148,7 @@ int GameState::PuyoCandidate(int xPos) {
 				if(P>=0)++PuyoCount[P];
 			}
 			for (int k = 0; k < 4; ++k) {
-				if (PuyoCount[k] >= 2)ret += (1 << k);
+				if (PuyoCount[k] >= 1)ret += (1 << k);
 			}
 			return ret;
 		}
@@ -223,6 +236,9 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 	else isVisited[xPos][yPos] = true;//探索
 	if (Board[xPos][yPos] == signed char(PuyoColor::none) || Board[xPos][yPos] == signed char(PuyoColor::jamma)) return false;//お邪魔もしくは空白の場合は無視
 	
+	TimeController t;
+	t.Reset();
+
 	std::queue<int> que;
 	//std::vector<int> ErasePuyoPos;
 	int ErasePuyoPos[80];
@@ -243,16 +259,18 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 			if (nxPos < 0 || nxPos >= GameWidth || nyPos < 0 || nyPos >= GameHeight)continue;//盤面外に行ったらダメ
 			if (isVisited[nxPos][nyPos])continue;//探索済みならダメ
 			if (Board[nxPos][nyPos] != Board[Pos / GameHeight][Pos % GameHeight])continue;//つながってないとダメ
+			
+			//if (renketsu && idx < 2)RenScore += 30;
 			//つながってるので追加、探索済みにする
 			que.push(nxPos * GameHeight + nyPos);
-			if (idx <= 1)RenScore += 120;
-			else RenScore += 40;
 			//ErasePuyoPos.emplace_back(nxPos * GameHeight + nyPos);
 			ErasePuyoPos[sz] = nxPos * GameHeight + nyPos;
 			sz++;
 			isVisited[nxPos][nyPos] = true;
 		}
 	}
+
+	nowtime += t.Current();
 
 
 	if (sz > 1) {
@@ -265,11 +283,12 @@ bool GameState::RensaSearch(const std::pair<int,int>& Pos,bool isVisited[6][12],
 				Board[ErasePuyoPos[i] / GameHeight][ErasePuyoPos[i] % GameHeight] = signed char(PuyoColor::none);
 				nextSearchPos[ErasePuyoPos[i] / GameHeight] = true;
 			}
+			if(renketsu)PuyoCount -= sz;
 			//RenScore = 0;
 			return true;
 		}
-		else if (renketsu  && sz == 3)RenScore += 180;
-		else if (renketsu && sz == 2)RenScore += 90;
+		else if (renketsu  && sz == 3)RenScore += 120;
+		else if (renketsu && sz == 2)RenScore += 30;
 	}
 	return false;
 }
@@ -281,8 +300,7 @@ int GameState::RensaSimulationVer2(std::vector<std::pair<int, int>> PutPuyoPos) 
 	int dy[4] = { 0, 0,-1,1 };
 	bool nextSearchPos[GameWidth] = { false,false,false,false,false,false };
 
-	TimeController t;
-	t.Reset();
+	
 	
 	do {
 		RensaFlag = false;
@@ -316,7 +334,7 @@ int GameState::RensaSimulationVer2(std::vector<std::pair<int, int>> PutPuyoPos) 
 		}
 	} while (RensaFlag);
 	
-	nowtime += t.Current();
+	
 
 	return RensaNum;
 }
